@@ -5,15 +5,19 @@
 #ifndef CPP_FINAL_PROJECT_VLVECTOR_HPP
 #define CPP_FINAL_PROJECT_VLVECTOR_HPP
 
-#include <cstdlib>
 #include <iterator>
+#include <memory>
+#define AT_EXCEPTION_MSG "In function \"at\": Index was not found"
 #define DEF_STATIC_CAPACITY 16
 
-template<typename T, int StaticCapacity = DEF_STATIC_CAPACITY>
+template<typename T, size_t StaticCapacity = DEF_STATIC_CAPACITY>
 class VLVector
 {
 private:
-    size_t _size;
+    bool stackMode;
+    std::size_t _size;
+    std::unique_ptr<T> heapVec;
+    T stackVec[StaticCapacity];
 
     /**
      * @brief An iterator for the vector.
@@ -111,9 +115,14 @@ public:
     /**
      * @brief Default constructor. Initialises an empty VLVector.
      */
-    VLVector()
+    VLVector() : stackMode(true), _size(0)
+    //, heapVec(new T[0], [&](T *p){delete[] p;})
     {
+        heapVec = std::make_unique<T>();
+        heapVec.get()[0] = 1;
+        std::cerr << heapVec.get()[0]<<'\n';//TODO CHECK IF MEMORY WAS RELEASED PROPERLY
     }
+    /** stackVec()*///TODO IS THIS NEEDED?
 
     /**
      * @brief Constructs a VLVector object.
@@ -129,19 +138,26 @@ public:
      * @brief Returns the number of elements that are stored in the vector.
      * @return the number of elements that are stored in the vector.
      */
-    size_t size() const {return this->_size;}
+    inline std::size_t size() const {return this->_size;}
 
     /**
      * @brief Returns the capacity of the vector.
      * @return the capacity of the vector.
      */
-    size_t capacity() const {}
+    std::size_t capacity() const
+    {
+        if ((int)this->_size + 1 <= StaticCapacity)
+        {
+            return StaticCapacity;
+        }
+        return (size_t)(3 * (this->_size + 1) / 2);
+    }
 
     /**
      * @brief Checks if the vector is empty.
      * @return true iff the vector is empty.
      */
-    bool empty() const {}
+    inline bool empty() const {return _size == 0;}
 
     /**
      * @brief Gets an index and returns a reference to the value associated to it.
@@ -149,7 +165,14 @@ public:
      * @param index the index of the value in the vector.
      * @return a reference to the value that is associated to the index.
      */
-    T &at(const int index){}
+    T &at(const int index)
+    {
+        if (index >= 0 && index <= (int)this->_size)
+        {
+
+        }
+        throw std::out_of_range(AT_EXCEPTION_MSG);
+    }
 
     /**
      * @brief Gets an index and returns the value associated to it.
@@ -210,7 +233,14 @@ public:
      * @brief Returns a pointer to the data type that currently contains the vector.
      * @return a pointer to the data type that currently contains the vector.
      */
-    T *data() const {}
+    T *data() const
+    {
+        if (stackMode)
+        {
+            return &this->stackVec;
+        }
+        return this->heapVec;
+    }
 
     /**
      * @brief Gets an index and returns a reference to the value associated to it.
@@ -244,6 +274,8 @@ public:
     {
         return !operator==(other);
     }
+
+    inline iterator begin(){return iterator();}
 };
 
 
