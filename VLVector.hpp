@@ -7,6 +7,7 @@
 
 #include <iterator>
 #include <memory>
+#include <algorithm>
 #define AT_EXCEPTION_MSG "In function \"at\": Index was not found"
 #define DEF_STATIC_CAPACITY 16
 
@@ -23,84 +24,17 @@ private:
     /**
      * @brief An iterator for the vector.
      */
-    class iterator
+    template<typename Val>
+    class VLVectorIterator
     {
+    private:
+        bool _stackMode;
+        unsigned int _index;
+        std::size_t _size;
+        std::size_t _capacity;
+        std::unique_ptr<T[]> _vec;
+
     public:
-
-        /**
-         * @brief Returns the current element the iterator points at.
-         * @return the current element the iterator points at.
-         */
-        T &operator*(){}
-
-        /**
-         * @brief Returns a pointer to the current element the iterator points at.
-         * @return a pointer to the current element the iterator points at.
-         */
-        T *operator->(){}
-
-        /**
-         * @brief Increments the iterator so that it points to the next element in the vector.
-         * @return the iterator after it was incremented.
-         */
-        iterator &operator++(){}
-
-        /**
-         * @brief Increments the iterator so that it points to the next element in the vector.
-         * @return the element that the iterator pointed to before it was incremented.
-         */
-        iterator operator++(int){}
-
-        /**
-         * @brief Decrements the iterator so that it points to the previous element in the vector.
-         * @return the iterator after it was decremented.
-         */
-        iterator &operator--(){}
-
-        /**
-         * @brief Decrements the iterator so that it points to the previous element in the vector.
-         * @return the element that the iterator pointed to before it was decremented.
-         */
-        iterator operator--(int){}
-
-        /**
-         * @brief Concatenates this iterator with another one and returns the result.
-         * @param other the other iterator to concatenate to this one.
-         * @return the result of the concatenation.
-         */
-        iterator operator+(const iterator &other){}
-
-        iterator operator-(const iterator &other){}
-
-        iterator &operator+=(const iterator &other){}
-
-        iterator &operator-=(const iterator &other){}
-
-        /**
-         * @brief Checks if the iterator points to the same element that another iterator points to.
-         * @param other the other iterator.
-         * @return true iff both iterators point to the same element.
-         */
-        bool operator==(const iterator &other) const{}
-
-        /**
-         * @brief Checks if the iterator doesn't point to a the same element
-         * that another iterator points to.
-         * @param other the other iterator.
-         * @return true iff the iterators don't point to the same element.
-         */
-        bool operator!=(const iterator &other) const
-        {
-            return !operator==(other);
-        }
-
-        bool operator<(const iterator &other) const{}
-
-        bool operator>(const iterator &other) const{}
-
-        bool operator<=(const iterator &other) const{}
-
-        bool operator>=(const iterator &other) const{}
 
         /**
          * @brief Iterator traits.
@@ -110,7 +44,171 @@ private:
         typedef T &reference;
         typedef std::ptrdiff_t difference_type;
         typedef std::random_access_iterator_tag iterator_category;
-    private:
+
+        /**
+         * @brief Constructor for iterator objects.
+         * Initialises the iterator to point at the first element in the vector.
+         * @param stackMode
+         * @param size
+         * @param capacity
+         * @param heapVec
+         * @param stackVec
+         */
+        VLVectorIterator(bool stackMode, size_t size, size_t capacity,
+                         const std::unique_ptr<T[]> &heapVec) : _stackMode(stackMode),
+                                                                             _index(0),
+                                                                             _size(size),
+                                                                             _capacity(capacity),
+                                                                             _vec(heapVec){}
+
+        /**
+         * @brief Returns the current element the iterator points at.
+         * @return the current element the iterator points at.
+         */
+        T &operator*(){return _vec[_index];}
+
+        /**
+         * @brief Returns a pointer to the current element the iterator points at.
+         * @return a pointer to the current element the iterator points at.
+         */
+        T *operator->(){return &_vec[_index];}
+
+        /**
+         * @brief Increments the iterator so that it points to the next element in the vector.
+         * @return the iterator after it was incremented.
+         */
+        VLVectorIterator &operator++()
+        {
+            if (_index + 1 < _size)
+            {
+                ++_index;
+            }
+            return *this;
+        }
+
+        /**
+         * @brief Increments the iterator so that it points to the next element in the vector.
+         * @return the element that the iterator pointed to before it was incremented.
+         */
+        VLVectorIterator operator++(int)
+        {
+            VLVectorIterator temp = *this;
+            if (_index + 1 < _size)
+            {
+                ++_index;
+            }
+            return temp;
+        }
+
+        /**
+         * @brief Decrements the iterator so that it points to the previous element in the vector.
+         * @return the iterator after it was decremented.
+         */
+        VLVectorIterator &operator--()
+        {
+            if (_index - 1 > 0)
+            {
+                --_index;
+            }
+            return *this;
+        }
+
+        /**
+         * @brief Decrements the iterator so that it points to the previous element in the vector.
+         * @return the element that the iterator pointed to before it was decremented.
+         */
+        VLVectorIterator operator--(int)
+        {
+            VLVectorIterator temp = *this;
+            if (_index - 1 > 0)
+            {
+                --_index;
+            }
+            return temp;
+        }
+
+        /**
+         * @brief Returns an iterator that points to the value that is stored in a given
+         * distance after this iterator.
+         * @param distance the distance between this iterator to the result.
+         * @return the result of the addition.
+         */
+        VLVectorIterator operator+(const difference_type distance) const
+        {
+            VLVectorIterator res = *this;
+            return res.operator+=(distance);
+        }
+
+        /**
+         * @brief Returns an iterator that points to the value that is stored in a given
+         * distance before this iterator.
+         * @param distance the distance between this iterator to the result.
+         * @return the result of the subtraction.
+         */
+        VLVectorIterator operator-(const difference_type distance) const
+        {
+            VLVectorIterator res = *this;
+            return res.operator-=(distance);
+        }
+
+        /**
+         * @brief Moves this iterator to point at the value that is stored in a given
+         * distance after this iterator.
+         * @param distance the distance between this iterator to the result.
+         * @return this iterator after the addition.
+         */
+        VLVectorIterator &operator+=(const difference_type distance)
+        {
+            if (_index + distance < _size)
+            {
+                _index += distance;
+            }
+            return *this;
+        }
+
+        /**
+         * @brief Moves this iterator to point at the value that is stored in a given
+         * distance before this iterator.
+         * @param distance the distance between this iterator to the result.
+         * @return this iterator after the subtraction.
+         */
+        VLVectorIterator &operator-=(const difference_type distance)
+        {
+            if (_index - distance > 0)
+            {
+                _index += distance;
+            }
+            return *this;
+        }
+
+        /**
+         * @brief Checks if the iterator points to the same element that another iterator points to.
+         * @param other the other iterator.
+         * @return true iff both iterators point to the same element.
+         */
+        bool operator==(const VLVectorIterator &other) const
+        {
+            return _index == other._index && *(*this) == *other;
+        }
+
+        /**
+         * @brief Checks if the iterator doesn't point to a the same element
+         * that another iterator points to.
+         * @param other the other iterator.
+         * @return true iff the iterators don't point to the same element.
+         */
+        bool operator!=(const VLVectorIterator &other) const
+        {
+            return !operator==(other);
+        }
+
+        bool operator<(const VLVectorIterator &other) const{}
+
+        bool operator>(const VLVectorIterator &other) const{}
+
+        bool operator<=(const VLVectorIterator &other) const{}
+
+        bool operator>=(const VLVectorIterator &other) const{}
     };
 
     /**
@@ -141,6 +239,10 @@ private:
         heapVec.reset(nullptr);
     }
 public:
+
+    typedef VLVectorIterator<T> iterator;
+    typedef VLVectorIterator<const T> const_iterator;
+
     /**
      * @brief Default constructor. Initialises an empty VLVector.
      */
@@ -154,7 +256,7 @@ public:
      * @param last iterator to the last T value in the group.
      */
     template<class InputIterator> //TODO
-    VLVector(InputIterator& first, InputIterator& last) : stackMode(true), _size(0), _capacity(StaticCapacity)
+    VLVector(InputIterator &first, InputIterator &last) : stackMode(true), _size(0), _capacity(StaticCapacity)
     {
 //        for (auto &it = first; it != last; ++it)
 //        {
@@ -349,22 +451,18 @@ public:
 
     /**
      * @brief Removes all elements from the vector.
-     */ //TODO
+     */
     void clear()
     {
-        if (stackMode)
-        {
-            for (int i = 0; i < (int) _size; ++i)
-            {
-                stackVec[i] = T();
-            }
-        }
-        else
+        // If we need to remove elements from the heap:
+        if (!stackMode)
         {
             heapVec.reset(nullptr);
             _capacity = StaticCapacity;
             stackMode = true;
         }
+
+        std::fill(stackVec, stackVec + _capacity, T());
         _size = 0;
     }
 
@@ -445,7 +543,10 @@ public:
     bool operator!=(const VLVector &other) const {return !operator==(other);}
 
     //TODO
-    iterator begin(){return iterator();}
+    iterator begin() {return iterator();}
+    iterator end(){return iterator(0);}
+    const_iterator cbegin() const {return const_iterator();}
+    const_iterator cend() const {return const_iterator();}
 };
 
 
