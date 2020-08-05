@@ -138,14 +138,13 @@ private:
         {
             stackVec[i] = heapVec[i];
         }
-        heapVec.reset();
+        heapVec.reset(nullptr);
     }
 public:
     /**
      * @brief Default constructor. Initialises an empty VLVector.
      */
-    VLVector() : stackMode(true), _size(0), _capacity(StaticCapacity), heapVec(nullptr){} //, [&](T *p){delete[]
-    // p;}
+    VLVector() : stackMode(true), _size(0), _capacity(StaticCapacity), heapVec(nullptr){}
 
     /**
      * @brief Constructs a VLVector object.
@@ -242,6 +241,7 @@ public:
             }
             else //If the capacity that was calculated before exceeds the static capacity:
             {
+                _capacity = newCapacity;
                 copyToHeap();
                 heapVec[_size] = val;
             }
@@ -256,6 +256,7 @@ public:
                     newHeap[i] = heapVec[i];
                 }
                 _capacity = newCapacity;
+                heapVec.swap(newHeap);
             }
             heapVec[_size] = val;
         }
@@ -268,22 +269,34 @@ public:
      */
     void push_back(const T &&val)
     {
-        _capacity = capacity();
+        std::size_t newCapacity = capacity();
         if (stackMode) //We are in stack mode - values are stored on the stack:
         {
             //If the capacity that was calculated before does not exceed the static capacity:
-            if (_capacity <= StaticCapacity)
+            if (newCapacity <= StaticCapacity)
             {
                 stackVec[_size] = val;
             }
             else //If the capacity that was calculated before exceeds the static capacity:
             {
+                _capacity = newCapacity;
                 copyToHeap();
                 heapVec[_size] = val;
             }
         }
         else //We are in heap mode - values are stored on the heap:
         {
+            if (_size + 1 > _capacity)
+            {
+                //Increase size of vector on heap:
+                auto newHeap = std::make_unique<T[]>(newCapacity);
+                for (int i = 0; i < _size; ++i)
+                {
+                    newHeap[i] = heapVec[i];
+                }
+                _capacity = newCapacity;
+                heapVec.swap(newHeap);
+            }
             heapVec[_size] = val;
         }
         ++_size;
@@ -309,28 +322,22 @@ public:
 
     /**
      * @brief Removes the last element from the vector.
-     */ //TODO
+     */
     void pop_back()
     {
-        if (!stackMode) //We are in heap mode - values are stored on the heap:
+        if (_size > 0)
         {
-            //If the capacity that was calculated before does not exceed the static capacity:
-            if (_capacity <= StaticCapacity)
+            --_size;
+            data()[_size] = T();
+
+            // If we are in heap mode and following the pop action
+            // the capacity decreased to static capacity:
+            if (!stackMode && capacity() <= StaticCapacity)
             {
-            }
-            else //If the capacity that was calculated before exceeds the static capacity:
-            {
-                copyToHeap();
+                _capacity = StaticCapacity;
+                copyToStack();
             }
         }
-        else //We are in stack mode - values are stored on the stack:
-        {
-            if (_size > 0)
-            {
-                stackVec[_size - 1] = T();
-            }
-        }
-        --_size;
     }
 
     /**
@@ -343,7 +350,23 @@ public:
     /**
      * @brief Removes all elements from the vector.
      */ //TODO
-    void clear(){}
+    void clear()
+    {
+        if (stackMode)
+        {
+            for (int i = 0; i < (int) _size; ++i)
+            {
+                stackVec[i] = T();
+            }
+        }
+        else
+        {
+            heapVec.reset(nullptr);
+            _capacity = StaticCapacity;
+            stackMode = true;
+        }
+        _size = 0;
+    }
 
     /**
      * @brief Returns a pointer to the data type that currently contains the vector.
@@ -370,7 +393,7 @@ public:
         {
             return data()[index];
         }
-        return T();
+//        return T();
     }
 
     /**
@@ -385,7 +408,7 @@ public:
         {
             return data()[index];
         }
-        return T();
+//        return T();
     }
 
     /**
