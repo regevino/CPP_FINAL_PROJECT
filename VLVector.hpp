@@ -182,7 +182,7 @@ private:
         {
             if (_index - distance >= 0)
             {
-                _index += distance;
+                _index -= distance;
             }
             return *this;
         }
@@ -478,7 +478,7 @@ public:
         }
         // Move the values of the vector that should appear
         // after the new value one step to the right:
-        for (auto &it = end(); it != position; --it)
+        for (auto it = end(); it != position; --it)
         {
             *it = *(it - 1);
         }
@@ -496,6 +496,12 @@ public:
      */
     iterator insert(const iterator position, const T &&val)
     {
+        auto last = end();
+        if (position + 1 == last)
+        {
+            push_back(val);
+            return position;
+        }
         std::size_t newCapacity = capacity();
 
         // We are in stack mode - values are stored on the stack,
@@ -513,7 +519,7 @@ public:
         }
         // Move the values of the vector that should appear
         // after the new value one step to the right:
-        for (auto &it = end(); it != position; --it)
+        for (auto it = last; it != position; --it)
         {
             *it = *(it - 1);
         }

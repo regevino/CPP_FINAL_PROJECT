@@ -1,8 +1,10 @@
 #include <iostream>
 #include "VLVector.hpp"
 #include <algorithm>
+#include <vector>
 int main()
 {
+    std::vector<int> v3;
     VLVector<int, 4> v;
     int c = 0;
     v.push_back(c);
@@ -15,23 +17,33 @@ int main()
     v.push_back(7);
     v.push_back(8);
 
-    VLVector<int, 4> v1;
-    std::cerr << (v == v1) << '\n';
-    std::cerr << (v != v1) << '\n';
-
-    VLVector<int, 4> v2;
-    v1.push_back(c);
-    v1.push_back(1);
-    v1.push_back(2);
-    v1.push_back(3);
-    v1.push_back(4);
-    v1.push_back(5);
-    v1.push_back(6);
-    v1.push_back(7);
-    v1.push_back(8);
-
-    std::cerr << (v == v1) << '\n';
-    std::cerr << (v != v1) << '\n';
+    auto res = v.insert(v.begin(), 400);
+    if (res == v.begin())
+    {
+        std::cerr << "AAAAAAAAAAAAAA" << '\n';
+    }
+    else
+    {
+        std::cerr << "BBBBBBBBBBBBBB" << '\n';
+    }
+//    v.insert(v.end() - 3, 100);
+//    VLVector<int, 4> v1;
+//    std::cerr << (v == v1) << '\n';
+//    std::cerr << (v != v1) << '\n';
+//
+//    VLVector<int, 4> v2;
+//    v1.push_back(c);
+//    v1.push_back(1);
+//    v1.push_back(2);
+//    v1.push_back(3);
+//    v1.push_back(4);
+//    v1.push_back(5);
+//    v1.push_back(6);
+//    v1.push_back(7);
+//    v1.push_back(8);
+//
+//    std::cerr << (v == v1) << '\n';
+//    std::cerr << (v != v1) << '\n';
 //    std::cerr << v.size() << '\n';
 //    auto res = v.erase(v.begin());
 //    if (res == v.begin())
