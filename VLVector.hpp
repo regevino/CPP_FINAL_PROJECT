@@ -520,8 +520,29 @@ public:
      * @brief Removes from the vector the value that the given iterator points to.
      * @param position an iterator that points to the value that is to be removed.
      * @return an iterator to the value that appeared after the removed value.
-     */ //TODO
-    iterator erase(iterator &position){}
+     */
+    iterator erase(const iterator &position)
+    {
+        if (position + 1 == end())
+        {
+            pop_back();
+            return end();
+        }
+        //Move the values of the vector that were after the erased value one step to the left:
+        for (auto &it = position; it != end() - 1; ++it)
+        {
+            *it = *(it + 1);
+        }
+        --_size;
+        // If we are in heap mode and following the erase action
+        // the capacity decreased to static capacity:
+        if (!stackMode && capacity() <= StaticCapacity)
+        {
+            _capacity = StaticCapacity;
+            copyToStack();
+        }
+        return position;
+    }
 
     /**
      * @brief Removes all elements from the vector.
