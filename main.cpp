@@ -5,17 +5,20 @@ int main()
 {
     VLVector<int> v;
 
-    int b[5] = {0};
-    std::fill(b, b+5, 5);
-    for (int i: b)
+    std::shared_ptr<int> a = std::shared_ptr<int>(new int[5], [&](int *p){delete [] p;});
+    for (int i = 0; i < 5; ++i)
     {
-        std::cerr << i << '\n';
+        a.get()[i] = i+1;
     }
-
-//    auto a = std::make_unique<int[]>(2);
-//    a[0] = 1;
-//    a[1] = 2;
-//    std::cerr << a[0] << '\n';
-//    std::cerr << a[1] << '\n';
+    for (int i = 0; i < 5; ++i)
+    {
+        std::cerr << a.get()[i] << '\n';
+    }
+    std::cerr << "------------------------------\n";
+    int *b = a.get();
+    for (int i = 0; i < 5; ++i)
+    {
+        std::cerr << b[i] << '\n';
+    }
     return 0;
 }

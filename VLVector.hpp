@@ -18,8 +18,8 @@ private:
     bool stackMode;
     std::size_t _size;
     std::size_t _capacity;
-    std::unique_ptr<T[]> heapVec;
     T stackVec[StaticCapacity];
+    std::shared_ptr<T> heapVec;
 
     /**
      * @brief An iterator for the vector.
@@ -28,11 +28,9 @@ private:
     class VLVectorIterator
     {
     private:
-        bool _stackMode;
         unsigned int _index;
         std::size_t _size;
-        std::size_t _capacity;
-        std::unique_ptr<T[]> _vec;
+        T *_vec;
 
     public:
 
@@ -48,30 +46,25 @@ private:
         /**
          * @brief Constructor for iterator objects.
          * Initialises the iterator to point at the first element in the vector.
-         * @param stackMode
+         * @param index
          * @param size
-         * @param capacity
-         * @param heapVec
-         * @param stackVec
+         * @param vec
          */
-        VLVectorIterator(bool stackMode, size_t size, size_t capacity,
-                         const std::unique_ptr<T[]> &heapVec) : _stackMode(stackMode),
-                                                                             _index(0),
-                                                                             _size(size),
-                                                                             _capacity(capacity),
-                                                                             _vec(heapVec){}
+        VLVectorIterator(unsigned int index, size_t size, T *vec)
+        : _index(index), _size(size), _vec(vec)
+        {}
 
         /**
          * @brief Returns the current element the iterator points at.
          * @return the current element the iterator points at.
          */
-        T &operator*(){return _vec[_index];}
+        T &operator*() const {return _vec[_index];}
 
         /**
          * @brief Returns a pointer to the current element the iterator points at.
          * @return a pointer to the current element the iterator points at.
          */
-        T *operator->(){return &_vec[_index];}
+        T *operator->() const {return &_vec[_index];}
 
         /**
          * @brief Increments the iterator so that it points to the next element in the vector.
@@ -152,6 +145,14 @@ private:
         }
 
         /**
+         * @brief Returns an iterator that points to the value that is stored in a given
+         * distance before this iterator.
+         * @param distance the distance between this iterator to the result.
+         * @return the result of the subtraction.
+         */
+        difference_type operator-(const VLVectorIterator &other) const{return _index - other._index;}
+
+        /**
          * @brief Moves this iterator to point at the value that is stored in a given
          * distance after this iterator.
          * @param distance the distance between this iterator to the result.
@@ -192,6 +193,32 @@ private:
         }
 
         /**
+         * @brief Returns the value that is stored i steps from the position this iterator is at.
+         * @param i the interval.
+         * @return the value that is stored i steps from the position this iterator is at.
+         */
+        T &operator[](const difference_type i) noexcept
+        {
+            if (_index + i < _size)
+            {
+                return _vec[_index + i];
+            }
+        }
+
+        /**
+         * @brief Returns the value that is stored i steps from the position this iterator is at.
+         * @param i the interval.
+         * @return the value that is stored i steps from the position this iterator is at.
+         */
+        const T &operator[](const difference_type i) const noexcept
+        {
+            if (_index + i < _size)
+            {
+                return _vec[_index + i];
+            }
+        }
+
+        /**
          * @brief Checks if the iterator doesn't point to a the same element
          * that another iterator points to.
          * @param other the other iterator.
@@ -202,13 +229,41 @@ private:
             return !operator==(other);
         }
 
-        bool operator<(const VLVectorIterator &other) const{}
+        /**
+         * @brief Checks if this iterator points to a value that is stored before the value
+         * that the given iterator points to.
+         * @param other the other iterator.
+         * @return true iff this iterator points to a value that is stored before the value
+         * that the given iterator points to.
+         */
+        bool operator<(const VLVectorIterator &other) const {return _index < other._index;}
 
-        bool operator>(const VLVectorIterator &other) const{}
+        /**
+         * @brief Checks if this iterator points to a value that is stored after the value
+         * that the given iterator points to.
+         * @param other the other iterator.
+         * @return true iff this iterator points to a value that is stored after the value
+         * that the given iterator points to.
+         */
+        bool operator>(const VLVectorIterator &other) const {return _index > other._index;}
 
-        bool operator<=(const VLVectorIterator &other) const{}
+        /**
+         * @brief Checks if this iterator points to a value that is stored before the value
+         * that the given iterator points to or if they point to the same value.
+         * @param other the other iterator.
+         * @return true iff this iterator points to a value that is stored before the value
+         * that the given iterator points to or if they point to the same value.
+         */
+        bool operator<=(const VLVectorIterator &other) const {return !operator>(other);}
 
-        bool operator>=(const VLVectorIterator &other) const{}
+        /**
+         * @brief Checks if this iterator points to a value that is stored after the value
+         * that the given iterator points to or if they point to the same value.
+         * @param other the other iterator.
+         * @return true iff this iterator points to a value that is stored after the value
+         * that the given iterator points to or if they point to the same value.
+         */
+        bool operator>=(const VLVectorIterator &other) const {return !operator<(other);}
     };
 
     /**
@@ -218,10 +273,10 @@ private:
     void copyToHeap()
     {
         stackMode = false;
-        heapVec = std::make_unique<T[]>(_capacity);
+        heapVec = std::shared_ptr<T>(new T[_capacity], [&](T *p){delete [] p;});
         for (int i = 0; i < (int) StaticCapacity; ++i)
         {
-            heapVec[i] = stackVec[i];
+            heapVec.get()[i] = stackVec[i];
         }
     }
 
@@ -234,7 +289,7 @@ private:
         stackMode = true;
         for (int i = 0; i < (int) _size; ++i)
         {
-            stackVec[i] = heapVec[i];
+            stackVec[i] = heapVec.get()[i];
         }
         heapVec.reset(nullptr);
     }
@@ -255,13 +310,14 @@ public:
      * @param first iterator to the first T value in the group.
      * @param last iterator to the last T value in the group.
      */
-    template<class InputIterator> //TODO
-    VLVector(InputIterator &first, InputIterator &last) : stackMode(true), _size(0), _capacity(StaticCapacity)
+    template<class InputIterator>
+    VLVector(InputIterator &first, InputIterator &last)
+    : stackMode(true), _size(0), _capacity(StaticCapacity)
     {
-//        for (auto &it = first; it != last; ++it)
-//        {
-//            insert();
-//        }
+        for (auto &it = first; it != last; ++it)
+        {
+            push_back(std::move(*it));
+        }
     }
 
     /**
@@ -303,7 +359,7 @@ public:
             {
                 return stackVec[index];
             }
-            return heapVec[index];
+            return heapVec.get()[index];
         }
         throw std::out_of_range(AT_EXCEPTION_MSG);
     }
@@ -322,7 +378,7 @@ public:
             {
                 return stackVec[index];
             }
-            return heapVec[index];
+            return heapVec.get()[index];
         }
         throw std::out_of_range(AT_EXCEPTION_MSG);
     }
@@ -345,22 +401,22 @@ public:
             {
                 _capacity = newCapacity;
                 copyToHeap();
-                heapVec[_size] = val;
+                heapVec.get()[_size] = val;
             }
         }
         else //We are in heap mode - values are stored on the heap:
         {
             if (_size + 1 > _capacity)
             {
-                auto newHeap = std::make_unique<T[]>(newCapacity);
+                auto newHeap = std::shared_ptr<T>(new T[newCapacity], [&](T *p){delete [] p;});
                 for (int i = 0; i < _size; ++i)
                 {
-                    newHeap[i] = heapVec[i];
+                    newHeap[i] = heapVec.get()[i];
                 }
                 _capacity = newCapacity;
                 heapVec.swap(newHeap);
             }
-            heapVec[_size] = val;
+            heapVec.get()[_size] = val;
         }
         ++_size;
     }
@@ -383,7 +439,7 @@ public:
             {
                 _capacity = newCapacity;
                 copyToHeap();
-                heapVec[_size] = val;
+                heapVec.get()[_size] = val;
             }
         }
         else //We are in heap mode - values are stored on the heap:
@@ -391,15 +447,15 @@ public:
             if (_size + 1 > _capacity)
             {
                 //Increase size of vector on heap:
-                auto newHeap = std::make_unique<T[]>(newCapacity);
+                auto newHeap = std::shared_ptr<T>(new T[newCapacity], [&](T *p){delete [] p;});
                 for (int i = 0; i < _size; ++i)
                 {
-                    newHeap[i] = heapVec[i];
+                    newHeap[i] = heapVec.get()[i];
                 }
                 _capacity = newCapacity;
                 heapVec.swap(newHeap);
             }
-            heapVec[_size] = val;
+            heapVec.get()[_size] = val;
         }
         ++_size;
     }
@@ -411,7 +467,20 @@ public:
      * @param val the value to add, given as an l-value.
      * @return an iterator that points to the added value.
      */ //TODO
-    iterator insert(const iterator &position, const T &val){}
+    iterator insert(const iterator &position, const T &val)
+    {
+        std::size_t newCapacity = capacity();
+        if (stackMode) //We are in stack mode - values are stored on the stack:
+        {
+            //If the capacity that was calculated before does not exceed the static capacity:
+            if (newCapacity <= StaticCapacity)
+            {
+                stackVec[_size] = val;
+            }
+
+        }
+
+    }
 
     /**
      * @brief Adds a given value to the vector at the position before
@@ -543,10 +612,12 @@ public:
     bool operator!=(const VLVector &other) const {return !operator==(other);}
 
     //TODO
-    iterator begin() {return iterator();}
-    iterator end(){return iterator(0);}
-    const_iterator cbegin() const {return const_iterator();}
-    const_iterator cend() const {return const_iterator();}
+    iterator begin() {return iterator(0, _size, data());}
+    iterator end() {return iterator(_size, _size, data());}
+    const_iterator begin() const {return const_iterator(0, _size, data());}
+    const_iterator end() const {return const_iterator(_size, _size, data());}
+    const_iterator cbegin() const {return const_iterator(0, _size, data());}
+    const_iterator cend() const {return const_iterator(_size, _size, data());}
 };
 
 
