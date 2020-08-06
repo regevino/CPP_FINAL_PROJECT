@@ -30,16 +30,16 @@ private:
     private:
         unsigned int _index;
         std::size_t _size;
-        T *_vec;
+        Val *_vec;
 
     public:
 
         /**
          * @brief Iterator traits.
          */
-        typedef T value_type;
-        typedef T *pointer;
-        typedef T &reference;
+        typedef Val value_type;
+        typedef Val *pointer;
+        typedef Val &reference;
         typedef std::ptrdiff_t difference_type;
         typedef std::random_access_iterator_tag iterator_category;
 
@@ -50,7 +50,7 @@ private:
          * @param size
          * @param vec
          */
-        VLVectorIterator(unsigned int index, size_t size, T *vec)
+        VLVectorIterator(unsigned int index, size_t size, Val *vec)
         : _index(index), _size(size), _vec(vec)
         {}
 
@@ -58,13 +58,13 @@ private:
          * @brief Returns the current element the iterator points at.
          * @return the current element the iterator points at.
          */
-        T &operator*() const {return _vec[_index];}
+        Val &operator*() const {return _vec[_index];}
 
         /**
          * @brief Returns a pointer to the current element the iterator points at.
          * @return a pointer to the current element the iterator points at.
          */
-        T *operator->() const {return &_vec[_index];}
+        Val *operator->() const {return &_vec[_index];}
 
         /**
          * @brief Increments the iterator so that it points to the next element in the vector.
@@ -72,7 +72,7 @@ private:
          */
         VLVectorIterator &operator++()
         {
-            if (_index + 1 < _size)
+            if (_index < _size)
             {
                 ++_index;
             }
@@ -86,7 +86,7 @@ private:
         VLVectorIterator operator++(int)
         {
             VLVectorIterator temp = *this;
-            if (_index + 1 < _size)
+            if (_index < _size)
             {
                 ++_index;
             }
@@ -99,7 +99,7 @@ private:
          */
         VLVectorIterator &operator--()
         {
-            if (_index - 1 > 0)
+            if (_index > 0)
             {
                 --_index;
             }
@@ -113,7 +113,7 @@ private:
         VLVectorIterator operator--(int)
         {
             VLVectorIterator temp = *this;
-            if (_index - 1 > 0)
+            if (_index > 0)
             {
                 --_index;
             }
@@ -160,7 +160,7 @@ private:
          */
         VLVectorIterator &operator+=(const difference_type distance)
         {
-            if (_index + distance < _size)
+            if (_index + distance <= _size)
             {
                 _index += distance;
             }
@@ -175,11 +175,24 @@ private:
          */
         VLVectorIterator &operator-=(const difference_type distance)
         {
-            if (_index - distance > 0)
+            if (_index - distance >= 0)
             {
                 _index += distance;
             }
             return *this;
+        }
+
+        /**
+         * @brief Returns the value that is stored i steps from the position this iterator is at.
+         * @param i the interval.
+         * @return the value that is stored i steps from the position this iterator is at.
+         */
+        Val &operator[](const difference_type i) const noexcept
+        {
+            if (_index + i < _size)
+            {
+                return _vec[_index + i];
+            }
         }
 
         /**
@@ -189,33 +202,25 @@ private:
          */
         bool operator==(const VLVectorIterator &other) const
         {
+            //Edge case: both iterators are end():
+            if (_index == _size && other._index == other._size)
+            {
+                return true;
+            }
+
+            //Edge case: one of the iterators is end() but the other isn't:
+            if (_index != _size && other._index == other._size)
+            {
+                return false;
+            }
+
+            //Edge case: same as previous, the other way around:
+            if (_index == _size && other._index != other._size)
+            {
+                return false;
+            }
+
             return _index == other._index && *(*this) == *other;
-        }
-
-        /**
-         * @brief Returns the value that is stored i steps from the position this iterator is at.
-         * @param i the interval.
-         * @return the value that is stored i steps from the position this iterator is at.
-         */
-        T &operator[](const difference_type i) noexcept
-        {
-            if (_index + i < _size)
-            {
-                return _vec[_index + i];
-            }
-        }
-
-        /**
-         * @brief Returns the value that is stored i steps from the position this iterator is at.
-         * @param i the interval.
-         * @return the value that is stored i steps from the position this iterator is at.
-         */
-        const T &operator[](const difference_type i) const noexcept
-        {
-            if (_index + i < _size)
-            {
-                return _vec[_index + i];
-            }
         }
 
         /**
@@ -332,7 +337,7 @@ public:
      */
     std::size_t capacity() const
     {
-        if ((int)_size + 1 <= StaticCapacity)
+        if (_size + 1 <= StaticCapacity)
         {
             return StaticCapacity;
         }
@@ -448,9 +453,9 @@ public:
             {
                 //Increase size of vector on heap:
                 auto newHeap = std::shared_ptr<T>(new T[newCapacity], [&](T *p){delete [] p;});
-                for (int i = 0; i < _size; ++i)
+                for (int i = 0; i < (int)_size; ++i)
                 {
-                    newHeap[i] = heapVec.get()[i];
+                    newHeap.get()[i] = heapVec.get()[i];
                 }
                 _capacity = newCapacity;
                 heapVec.swap(newHeap);
@@ -539,7 +544,20 @@ public:
      * @brief Returns a pointer to the data type that currently contains the vector.
      * @return a pointer to the data type that currently contains the vector.
      */
-    T *data() const
+    T *data()
+    {
+        if (stackMode)
+        {
+            return stackVec;
+        }
+        return heapVec.get();
+    }
+
+    /**
+     * @brief Returns a pointer to the data type that currently contains the vector.
+     * @return a pointer to the data type that currently contains the vector.
+     */
+    const T *data() const
     {
         if (stackMode)
         {
@@ -611,12 +629,40 @@ public:
      */
     bool operator!=(const VLVector &other) const {return !operator==(other);}
 
-    //TODO
+    /**
+     * @brief Returns an iterator to the beginning of the vector.
+     * @return an iterator to the beginning of the vector.
+     */
     iterator begin() {return iterator(0, _size, data());}
+
+    /**
+     * @brief Returns an iterator to the end of the vector.
+     * @return an iterator to the end of the vector.
+     */
     iterator end() {return iterator(_size, _size, data());}
+
+    /**
+     * @brief Returns a const iterator to the beginning of the vector.
+     * @return an iterator to the beginning of the vector.
+     */
     const_iterator begin() const {return const_iterator(0, _size, data());}
+
+    /**
+     * @brief Returns a const iterator to the end of the vector.
+     * @return an iterator to the end of the vector.
+     */
     const_iterator end() const {return const_iterator(_size, _size, data());}
+
+    /**
+     * @brief Returns a const iterator to the beginning of the vector.
+     * @return an iterator to the beginning of the vector.
+     */
     const_iterator cbegin() const {return const_iterator(0, _size, data());}
+
+    /**
+     * @brief Returns a const iterator to the end of the vector.
+     * @return an iterator to the end of the vector.
+     */
     const_iterator cend() const {return const_iterator(_size, _size, data());}
 };
 
