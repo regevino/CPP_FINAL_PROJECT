@@ -549,15 +549,16 @@ public:
      */
     iterator erase(iterator position)
     {
-        if (position + 1 == end())
+        auto last = end();
+        if (position + 1 == last)
         {
             pop_back();
-            return end();
+            return position;
         }
         //Move the values of the vector that were after the erased value one step to the left:
-        for (auto it = position; it != end() - 1; ++it)
+        for (auto it = position; it != last; ++it)
         {
-            *it = *(it + 1);//TODO FIX BUG HERE - POSITION CHANGES AND LOOP NEVER ENDS!!!
+            *it = *(it + 1);
         }
         --_size;
         // If we are in heap mode and following the erase action

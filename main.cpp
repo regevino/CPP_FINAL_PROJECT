@@ -13,9 +13,17 @@ int main()
     v.push_back(7);
     v.push_back(8);
 
-    std::cerr << v.size() << '\n';
-    v.erase(v.begin());
-    std::cerr << v.size() << '\n';
+//    std::cerr << v.size() << '\n';
+//    auto res = v.erase(v.begin());
+//    if (res == v.begin())
+//    {
+//        std::cerr << "AAAAAAAAAAAAAA" << '\n';
+//    }
+//    else
+//    {
+//        std::cerr << "BBBBBBBBBBBBBB" << '\n';
+//    }
+//    std::cerr << v.size() << '\n';
 
 //    std::cerr << v.empty() << '\n';
 //
