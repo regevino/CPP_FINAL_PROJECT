@@ -11,6 +11,11 @@
 #define AT_EXCEPTION_MSG "In function \"at\": Index was not found"
 #define DEF_STATIC_CAPACITY 16
 
+/**
+ * @brief Represents a Virtual Length Vector object.
+ * @tparam T the type of values stored in the vector.
+ * @tparam StaticCapacity the amount of space the vector will occupy on the stack.
+ */
 template<typename T, size_t StaticCapacity = DEF_STATIC_CAPACITY>
 class VLVector
 {
@@ -160,7 +165,7 @@ private:
          */
         VLVectorIterator &operator+=(const difference_type distance)
         {
-            if (_index + distance <= _size)
+            if (std::size_t (_index + distance) <= _size)
             {
                 _index += distance;
             }
@@ -296,7 +301,7 @@ private:
         {
             stackVec[i] = heapVec.get()[i];
         }
-        heapVec.reset(nullptr);
+        heapVec.reset();
     }
 
     /**
@@ -315,6 +320,9 @@ private:
     }
 public:
 
+    /**
+     * @brief Typedefs for const and non-const iterators for the vector.
+     */
     typedef VLVectorIterator<T> iterator;
     typedef VLVectorIterator<const T> const_iterator;
 
@@ -451,7 +459,7 @@ public:
      * @param val the value to add, given as an l-value.
      * @return an iterator that points to the added value.
      */
-    iterator insert(const iterator &position, const T &val)
+    iterator insert(const iterator position, const T &val)
     {
         std::size_t newCapacity = capacity();
 
@@ -486,7 +494,7 @@ public:
      * @param val the value to add, given as an r-value.
      * @return an iterator that points to the added value.
      */
-    iterator insert(const iterator &position, const T &&val)
+    iterator insert(const iterator position, const T &&val)
     {
         std::size_t newCapacity = capacity();
 
@@ -539,7 +547,7 @@ public:
      * @param position an iterator that points to the value that is to be removed.
      * @return an iterator to the value that appeared after the removed value.
      */
-    iterator erase(const iterator &position)
+    iterator erase(iterator position)
     {
         if (position + 1 == end())
         {
@@ -547,9 +555,9 @@ public:
             return end();
         }
         //Move the values of the vector that were after the erased value one step to the left:
-        for (auto &it = position; it != end() - 1; ++it)
+        for (auto it = position; it != end() - 1; ++it)
         {
-            *it = *(it + 1);
+            *it = *(it + 1);//TODO FIX BUG HERE - POSITION CHANGES AND LOOP NEVER ENDS!!!
         }
         --_size;
         // If we are in heap mode and following the erase action
@@ -570,7 +578,7 @@ public:
         // If we need to remove elements from the heap:
         if (!stackMode)
         {
-            heapVec.reset(nullptr);
+            heapVec.reset();
             _capacity = StaticCapacity;
             stackMode = true;
         }
@@ -617,7 +625,6 @@ public:
         {
             return data()[index];
         }
-//        return T();
     }
 
     /**
@@ -632,7 +639,6 @@ public:
         {
             return data()[index];
         }
-//        return T();
     }
 
     /**
