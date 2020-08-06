@@ -17,15 +17,21 @@ int main()
     v.push_back(7);
     v.push_back(8);
 
-    auto res = v.insert(v.begin(), 400);
-    if (res == v.begin())
+    VLVector<int, 4> w(v.begin(), v.end());
+    for (auto it: w)
     {
-        std::cerr << "AAAAAAAAAAAAAA" << '\n';
+        std::cerr << it << '\n';
     }
-    else
-    {
-        std::cerr << "BBBBBBBBBBBBBB" << '\n';
-    }
+
+//    auto res = v.insert(v.begin(), 400);
+//    if (res == v.begin())
+//    {
+//        std::cerr << "AAAAAAAAAAAAAA" << '\n';
+//    }
+//    else
+//    {
+//        std::cerr << "BBBBBBBBBBBBBB" << '\n';
+//    }
 //    v.insert(v.end() - 3, 100);
 //    VLVector<int, 4> v1;
 //    std::cerr << (v == v1) << '\n';

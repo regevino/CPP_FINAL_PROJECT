@@ -339,12 +339,12 @@ public:
      * @param last iterator to the last T value in the group.
      */
     template<class InputIterator>
-    VLVector(InputIterator &first, InputIterator &last)
+    VLVector(InputIterator first, InputIterator last)
     : stackMode(true), _size(0), _capacity(StaticCapacity)
     {
-        for (auto &it = first; it != last; ++it)
+        for (auto it = first; it != last; ++it)
         {
-            push_back(std::move(*it));
+            push_back(*it);
         }
     }
 
