@@ -381,7 +381,7 @@ public:
      */
     T &at(const int index)
     {
-        if (index >= 0 && index <= (int)_size)
+        if (index >= 0 && index < (int)_size)
         {
             return data()[index];
         }
@@ -396,7 +396,7 @@ public:
      */
     T at(const int index) const
     {
-        if (index >= 0 && index <= (int)_size)
+        if (index >= 0 && index < (int)_size)
         {
             return data()[index];
         }
@@ -622,10 +622,7 @@ public:
      */
     T &operator[](const int index) noexcept
     {
-        if (index >= 0 && index < (int)_size)
-        {
-            return data()[index];
-        }
+        return data()[index];
     }
 
     /**
@@ -636,10 +633,7 @@ public:
      */
     const T &operator[](const int index) const noexcept
     {
-        if (index >= 0 && index < (int)_size)
-        {
-            return data()[index];
-        }
+        return data()[index];
     }
 
     /**
@@ -659,7 +653,7 @@ public:
         // with the element in the other vector at the same position:
         for (int i = 0; i < (int) _size; ++i)
         {
-            if (*this[i] != other[i])
+            if ((*this)[i] != other[i])
             {
                 return false;
             }
