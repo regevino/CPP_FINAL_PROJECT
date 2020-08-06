@@ -298,6 +298,21 @@ private:
         }
         heapVec.reset(nullptr);
     }
+
+    /**
+     * @brief Increases the size of the vector on heap.
+     * @param newCapacity the new capacity of the vector.
+     */
+    void increaseHeap(size_t newCapacity)
+    {
+        auto newHeap = std::shared_ptr<T>(new T[newCapacity], [&](T *p){delete [] p;});
+        for (int i = 0; i < (int) _size; ++i)
+        {
+            newHeap.get()[i] = heapVec.get()[i];
+        }
+        _capacity = newCapacity;
+        heapVec.swap(newHeap);
+    }
 public:
 
     typedef VLVectorIterator<T> iterator;
@@ -360,11 +375,7 @@ public:
     {
         if (index >= 0 && index <= (int)_size)
         {
-            if (stackMode)
-            {
-                return stackVec[index];
-            }
-            return heapVec.get()[index];
+            return data()[index];
         }
         throw std::out_of_range(AT_EXCEPTION_MSG);
     }
@@ -379,11 +390,7 @@ public:
     {
         if (index >= 0 && index <= (int)_size)
         {
-            if (stackMode)
-            {
-                return stackVec[index];
-            }
-            return heapVec.get()[index];
+            return data()[index];
         }
         throw std::out_of_range(AT_EXCEPTION_MSG);
     }
@@ -395,34 +402,20 @@ public:
     void push_back(const T &val)
     {
         std::size_t newCapacity = capacity();
-        if (stackMode) //We are in stack mode - values are stored on the stack:
+        // We are in stack mode - values are stored on the stack,
+        // and the capacity that was calculated before exceeds the static capacity:
+        if (stackMode && newCapacity > StaticCapacity)
         {
-            //If the capacity that was calculated before does not exceed the static capacity:
-            if (newCapacity <= StaticCapacity)
-            {
-                stackVec[_size] = val;
-            }
-            else //If the capacity that was calculated before exceeds the static capacity:
-            {
-                _capacity = newCapacity;
-                copyToHeap();
-                heapVec.get()[_size] = val;
-            }
+            _capacity = newCapacity;
+            copyToHeap();
         }
-        else //We are in heap mode - values are stored on the heap:
+        else if (_size + 1 > _capacity)
         {
-            if (_size + 1 > _capacity)
-            {
-                auto newHeap = std::shared_ptr<T>(new T[newCapacity], [&](T *p){delete [] p;});
-                for (int i = 0; i < _size; ++i)
-                {
-                    newHeap[i] = heapVec.get()[i];
-                }
-                _capacity = newCapacity;
-                heapVec.swap(newHeap);
-            }
-            heapVec.get()[_size] = val;
+            // We are in heap mode - values are stored on the heap,
+            // and the capacity needs to be increased:
+            increaseHeap(newCapacity);
         }
+        data()[_size] = val;
         ++_size;
     }
 
@@ -433,35 +426,21 @@ public:
     void push_back(const T &&val)
     {
         std::size_t newCapacity = capacity();
-        if (stackMode) //We are in stack mode - values are stored on the stack:
+
+        // We are in stack mode - values are stored on the stack,
+        // and the capacity that was calculated before exceeds the static capacity:
+        if (stackMode && newCapacity > StaticCapacity)
         {
-            //If the capacity that was calculated before does not exceed the static capacity:
-            if (newCapacity <= StaticCapacity)
-            {
-                stackVec[_size] = val;
-            }
-            else //If the capacity that was calculated before exceeds the static capacity:
-            {
-                _capacity = newCapacity;
-                copyToHeap();
-                heapVec.get()[_size] = val;
-            }
+            _capacity = newCapacity;
+            copyToHeap();
         }
-        else //We are in heap mode - values are stored on the heap:
+        else if (_size + 1 > _capacity)
         {
-            if (_size + 1 > _capacity)
-            {
-                //Increase size of vector on heap:
-                auto newHeap = std::shared_ptr<T>(new T[newCapacity], [&](T *p){delete [] p;});
-                for (int i = 0; i < (int)_size; ++i)
-                {
-                    newHeap.get()[i] = heapVec.get()[i];
-                }
-                _capacity = newCapacity;
-                heapVec.swap(newHeap);
-            }
-            heapVec.get()[_size] = val;
+            // We are in heap mode - values are stored on the heap,
+            // and the capacity needs to be increased:
+            increaseHeap(newCapacity);
         }
+        data()[_size] = val;
         ++_size;
     }
 
@@ -471,20 +450,33 @@ public:
      * @param position the position to add the value before it.
      * @param val the value to add, given as an l-value.
      * @return an iterator that points to the added value.
-     */ //TODO
+     */
     iterator insert(const iterator &position, const T &val)
     {
         std::size_t newCapacity = capacity();
-        if (stackMode) //We are in stack mode - values are stored on the stack:
+
+        // We are in stack mode - values are stored on the stack,
+        // and the capacity that was calculated before exceeds the static capacity:
+        if (stackMode && newCapacity > StaticCapacity)
         {
-            //If the capacity that was calculated before does not exceed the static capacity:
-            if (newCapacity <= StaticCapacity)
-            {
-                stackVec[_size] = val;
-            }
-
+            _capacity = newCapacity;
+            copyToHeap();
         }
-
+        else if (_size + 1 > _capacity)
+        {
+            // We are in heap mode - values are stored on the heap,
+            // and the capacity needs to be increased:
+            increaseHeap(newCapacity);
+        }
+        // Move the values of the vector that should appear
+        // after the new value one step to the right:
+        for (auto &it = end(); it != position; --it)
+        {
+            *it = *(it - 1);
+        }
+        *position = val;
+        ++_size;
+        return position;
     }
 
     /**
@@ -493,8 +485,34 @@ public:
      * @param position the position to add the value before it.
      * @param val the value to add, given as an r-value.
      * @return an iterator that points to the added value.
-     */ //TODO
-    iterator insert(const iterator &position, const T &&val){}
+     */
+    iterator insert(const iterator &position, const T &&val)
+    {
+        std::size_t newCapacity = capacity();
+
+        // We are in stack mode - values are stored on the stack,
+        // and the capacity that was calculated before exceeds the static capacity:
+        if (stackMode && newCapacity > StaticCapacity)
+        {
+            _capacity = newCapacity;
+            copyToHeap();
+        }
+        else if (_size + 1 > _capacity)
+        {
+            // We are in heap mode - values are stored on the heap,
+            // and the capacity needs to be increased:
+            increaseHeap(newCapacity);
+        }
+        // Move the values of the vector that should appear
+        // after the new value one step to the right:
+        for (auto &it = end(); it != position; --it)
+        {
+            *it = *(it - 1);
+        }
+        *position = val;
+        ++_size;
+        return position;
+    }
 
     /**
      * @brief Removes the last element from the vector.
