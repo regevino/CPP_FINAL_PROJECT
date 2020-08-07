@@ -303,7 +303,7 @@ private:
      * @brief Copies the elements of the vector from the stack to the heap.
      * Sets the flag stackMode to false.
      */
-    void copyToHeap()
+    void _copyToHeap()
     {
         _stackMode = false;
         _heapVec = new T[_capacity];
@@ -317,7 +317,7 @@ private:
      * @brief Copies the elements of the vector from the heap to the stack.
      * Sets the flag stackMode to true.
      */
-    void copyToStack()
+    void _copyToStack()
     {
         _stackMode = true;
         for (int i = 0; i < (int) _size; ++i)
@@ -332,7 +332,7 @@ private:
      * @brief Increases the size of the vector on heap.
      * @param newCapacity the new capacity of the vector.
      */
-    void increaseHeap(size_t newCapacity)
+    void _increaseHeap(size_t newCapacity)
     {
         T *newHeap = new T[newCapacity];
         for (int i = 0; i < (int) _size; ++i)
@@ -382,7 +382,7 @@ public:
      * @brief Move constructor.
      * @param other the vector to move from.
      */
-    VLVector(VLVector &&other) noexcept
+    VLVector(VLVector && other) noexcept
             : _stackMode(other._stackMode), _size(other._size), _capacity(other._capacity)
     {
         std::copy(other._stackVec, other._stackVec + StaticCapacity, _stackVec);
@@ -517,13 +517,13 @@ public:
         if (_stackMode && newCapacity > StaticCapacity)
         {
             _capacity = newCapacity;
-            copyToHeap();
+            _copyToHeap();
         }
         else if (_size + 1 > _capacity)
         {
             // We are in heap mode - values are stored on the heap,
             // and the capacity needs to be increased:
-            increaseHeap(newCapacity);
+            _increaseHeap(newCapacity);
         }
         data()[_size] = val;
         ++_size;
@@ -533,7 +533,7 @@ public:
      * @brief Adds a given value to the end of the vector.
      * @param val the value to add, given as an r-value.
      */
-    void push_back(const T &&val)
+    void push_back(const T && val)
     {
         std::size_t newCapacity = capacity();
 
@@ -542,13 +542,13 @@ public:
         if (_stackMode && newCapacity > StaticCapacity)
         {
             _capacity = newCapacity;
-            copyToHeap();
+            _copyToHeap();
         }
         else if (_size + 1 > _capacity)
         {
             // We are in heap mode - values are stored on the heap,
             // and the capacity needs to be increased:
-            increaseHeap(newCapacity);
+            _increaseHeap(newCapacity);
         }
         data()[_size] = val;
         ++_size;
@@ -570,13 +570,13 @@ public:
         if (_stackMode && newCapacity > StaticCapacity)
         {
             _capacity = newCapacity;
-            copyToHeap();
+            _copyToHeap();
         }
         else if (_size + 1 > _capacity)
         {
             // We are in heap mode - values are stored on the heap,
             // and the capacity needs to be increased:
-            increaseHeap(newCapacity);
+            _increaseHeap(newCapacity);
         }
         // Move the values of the vector that should appear
         // after the new value one step to the right:
@@ -596,7 +596,7 @@ public:
      * @param val the value to add, given as an r-value.
      * @return an iterator that points to the added value.
      */
-    iterator insert(const iterator position, const T &&val)
+    iterator insert(const iterator position, const T && val)
     {
         auto last = end();
         if (position == last)
@@ -611,13 +611,13 @@ public:
         if (_stackMode && newCapacity > StaticCapacity)
         {
             _capacity = newCapacity;
-            copyToHeap();
+            _copyToHeap();
         }
         else if (_size + 1 > _capacity)
         {
             // We are in heap mode - values are stored on the heap,
             // and the capacity needs to be increased:
-            increaseHeap(newCapacity);
+            _increaseHeap(newCapacity);
         }
         // Move the values of the vector that should appear
         // after the new value one step to the right:
@@ -645,7 +645,7 @@ public:
             if (!_stackMode && capacity() <= StaticCapacity)
             {
                 _capacity = StaticCapacity;
-                copyToStack();
+                _copyToStack();
             }
         }
     }
@@ -674,7 +674,7 @@ public:
         if (!_stackMode && capacity() <= StaticCapacity)
         {
             _capacity = StaticCapacity;
-            copyToStack();
+            _copyToStack();
         }
         return position;
     }
