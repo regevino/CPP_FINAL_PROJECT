@@ -20,15 +20,11 @@ template<typename T, size_t StaticCapacity = DEF_STATIC_CAPACITY>
 class VLVector
 {
 private:
-    struct InnerData{
-        bool stackMode;
-        std::size_t _size;
-        std::size_t _capacity;
-        T stackVec[StaticCapacity];
-        std::shared_ptr<T> heapVec;
-    };
-
-    std::unique_ptr<InnerData> _data;
+    bool _stackMode;
+    std::size_t _size;
+    std::size_t _capacity;
+    T _stackVec[StaticCapacity];
+    std::shared_ptr<T> _heapVec;
 
     /**
      * @brief An iterator for the vector.
@@ -286,11 +282,11 @@ private:
      */
     void copyToHeap()
     {
-        stackMode = false;
-        heapVec = std::shared_ptr<T>(new T[_capacity], [&](T *p){delete [] p;});
+        _stackMode = false;
+        _heapVec = std::shared_ptr<T>(new T[_capacity], [&](T *p){delete [] p;});
         for (int i = 0; i < (int) StaticCapacity; ++i)
         {
-            heapVec.get()[i] = stackVec[i];
+            _heapVec.get()[i] = _stackVec[i];
         }
     }
 
@@ -300,12 +296,12 @@ private:
      */
     void copyToStack()
     {
-        stackMode = true;
+        _stackMode = true;
         for (int i = 0; i < (int) _size; ++i)
         {
-            stackVec[i] = heapVec.get()[i];
+            _stackVec[i] = _heapVec.get()[i];
         }
-        heapVec.reset();
+        _heapVec.reset();
     }
 
     /**
@@ -317,10 +313,10 @@ private:
         auto newHeap = std::shared_ptr<T>(new T[newCapacity], [&](T *p){delete [] p;});
         for (int i = 0; i < (int) _size; ++i)
         {
-            newHeap.get()[i] = heapVec.get()[i];
+            newHeap.get()[i] = _heapVec.get()[i];
         }
         _capacity = newCapacity;
-        heapVec.swap(newHeap);
+        _heapVec.swap(newHeap);
     }
 public:
 
@@ -333,7 +329,15 @@ public:
     /**
      * @brief Default constructor. Initialises an empty VLVector.
      */
-    VLVector() : stackMode(true), _size(0), _capacity(StaticCapacity), heapVec(nullptr){}
+    VLVector() : _stackMode(true), _size(0), _capacity(StaticCapacity), _heapVec(nullptr){}
+
+//    VLVector(const VLVector &other)
+//    {
+//        _stackMode = other._stackMode;
+//        _size = other._size;
+//        _capacity = other._capacity;
+//
+//    }
 
     /**
      * @brief Constructs a VLVector object.
@@ -344,7 +348,7 @@ public:
      */
     template<class InputIterator>
     VLVector(InputIterator first, InputIterator last)
-    : stackMode(true), _size(0), _capacity(StaticCapacity)
+    : _stackMode(true), _size(0), _capacity(StaticCapacity)
     {
         for (auto it = first; it != last; ++it)
         {
@@ -416,7 +420,7 @@ public:
         std::size_t newCapacity = capacity();
         // We are in stack mode - values are stored on the stack,
         // and the capacity that was calculated before exceeds the static capacity:
-        if (stackMode && newCapacity > StaticCapacity)
+        if (_stackMode && newCapacity > StaticCapacity)
         {
             _capacity = newCapacity;
             copyToHeap();
@@ -441,7 +445,7 @@ public:
 
         // We are in stack mode - values are stored on the stack,
         // and the capacity that was calculated before exceeds the static capacity:
-        if (stackMode && newCapacity > StaticCapacity)
+        if (_stackMode && newCapacity > StaticCapacity)
         {
             _capacity = newCapacity;
             copyToHeap();
@@ -469,7 +473,7 @@ public:
 
         // We are in stack mode - values are stored on the stack,
         // and the capacity that was calculated before exceeds the static capacity:
-        if (stackMode && newCapacity > StaticCapacity)
+        if (_stackMode && newCapacity > StaticCapacity)
         {
             _capacity = newCapacity;
             copyToHeap();
@@ -510,7 +514,7 @@ public:
 
         // We are in stack mode - values are stored on the stack,
         // and the capacity that was calculated before exceeds the static capacity:
-        if (stackMode && newCapacity > StaticCapacity)
+        if (_stackMode && newCapacity > StaticCapacity)
         {
             _capacity = newCapacity;
             copyToHeap();
@@ -544,7 +548,7 @@ public:
 
             // If we are in heap mode and following the pop action
             // the capacity decreased to static capacity:
-            if (!stackMode && capacity() <= StaticCapacity)
+            if (!_stackMode && capacity() <= StaticCapacity)
             {
                 _capacity = StaticCapacity;
                 copyToStack();
@@ -573,7 +577,7 @@ public:
         --_size;
         // If we are in heap mode and following the erase action
         // the capacity decreased to static capacity:
-        if (!stackMode && capacity() <= StaticCapacity)
+        if (!_stackMode && capacity() <= StaticCapacity)
         {
             _capacity = StaticCapacity;
             copyToStack();
@@ -587,14 +591,14 @@ public:
     void clear()
     {
         // If we need to remove elements from the heap:
-        if (!stackMode)
+        if (!_stackMode)
         {
-            heapVec.reset();
+            _heapVec.reset();
             _capacity = StaticCapacity;
-            stackMode = true;
+            _stackMode = true;
         }
 
-        std::fill(stackVec, stackVec + _capacity, T());
+        std::fill(_stackVec, _stackVec + _capacity, T());
         _size = 0;
     }
 
@@ -604,11 +608,11 @@ public:
      */
     T *data()
     {
-        if (stackMode)
+        if (_stackMode)
         {
-            return stackVec;
+            return _stackVec;
         }
-        return heapVec.get();
+        return _heapVec.get();
     }
 
     /**
@@ -617,11 +621,11 @@ public:
      */
     const T *data() const
     {
-        if (stackMode)
+        if (_stackMode)
         {
-            return stackVec;
+            return _stackVec;
         }
-        return heapVec.get();
+        return _heapVec.get();
     }
 
     /**
