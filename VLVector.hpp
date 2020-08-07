@@ -20,11 +20,15 @@ template<typename T, size_t StaticCapacity = DEF_STATIC_CAPACITY>
 class VLVector
 {
 private:
-    bool stackMode;
-    std::size_t _size;
-    std::size_t _capacity;
-    T stackVec[StaticCapacity];
-    std::shared_ptr<T> heapVec;
+    struct InnerData{
+        bool stackMode;
+        std::size_t _size;
+        std::size_t _capacity;
+        T stackVec[StaticCapacity];
+        std::shared_ptr<T> heapVec;
+    };
+
+    std::unique_ptr<InnerData> _data;
 
     /**
      * @brief An iterator for the vector.
@@ -497,7 +501,7 @@ public:
     iterator insert(const iterator position, const T &&val)
     {
         auto last = end();
-        if (position + 1 == last)
+        if (position == last)
         {
             push_back(val);
             return position;

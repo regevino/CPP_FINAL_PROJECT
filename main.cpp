@@ -18,6 +18,8 @@ int main()
     v.push_back(8);
 
     VLVector<int, 4> w(v.begin(), v.end());
+    std::cerr << (v == w) << '\n';
+    std::cerr << (v != w) << "\n\n";
     for (auto it: w)
     {
         std::cerr << it << '\n';
