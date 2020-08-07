@@ -4,7 +4,6 @@
 #include <vector>
 int main()
 {
-    std::vector<int> v3;
     VLVector<int, 4> v;
     int c = 0;
     v.push_back(c);
@@ -17,13 +16,13 @@ int main()
     v.push_back(7);
     v.push_back(8);
 
-    VLVector<int, 4> w = v;
+    VLVector<int, 4> w = std::move(v);
     std::cerr << v.empty() << '\n';
-    std::cerr << (v.size() != 0) << "\n";
-//    for (auto it: w)
-//    {
-//        std::cerr << it << '\n';
-//    }
+    std::cerr << (v.size() == 0) << "\n";
+    for (auto it: w)
+    {
+        std::cerr << it << '\n';
+    }
 
 //    auto res = v.insert(v.begin(), 400);
 //    if (res == v.begin())

@@ -8,3 +8,6 @@ target_compile_options(CPP_FINAL_PROJECT PUBLIC -Wall)
 
 add_executable(PRESUB PresubmissionTests.cpp VLVector.hpp)
 target_compile_options(PRESUB PUBLIC -Wall)
+
+add_executable(TESTER HighestStudentGrade.cpp VLVector.hpp)
+target_compile_options(TESTER PUBLIC -Wall)

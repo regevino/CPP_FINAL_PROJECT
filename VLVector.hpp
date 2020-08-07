@@ -8,6 +8,7 @@
 #include <iterator>
 #include <memory>
 #include <algorithm>
+
 #define AT_EXCEPTION_MSG "In function \"at\": Index was not found"
 #define DEF_STATIC_CAPACITY 16
 
@@ -24,7 +25,7 @@ private:
     std::size_t _size;
     std::size_t _capacity;
     T _stackVec[StaticCapacity];
-    std::shared_ptr<T> _heapVec;
+    T *_heapVec;
 
     /**
      * @brief An iterator for the vector.
@@ -56,20 +57,27 @@ private:
          * @param vec
          */
         VLVectorIterator(unsigned int index, size_t size, Val *vec)
-        : _index(index), _size(size), _vec(vec)
-        {}
+                : _index(index), _size(size), _vec(vec)
+        {
+        }
 
         /**
          * @brief Returns the current element the iterator points at.
          * @return the current element the iterator points at.
          */
-        Val &operator*() const {return _vec[_index];}
+        Val &operator*() const
+        {
+            return _vec[_index];
+        }
 
         /**
          * @brief Returns a pointer to the current element the iterator points at.
          * @return a pointer to the current element the iterator points at.
          */
-        Val *operator->() const {return &_vec[_index];}
+        Val *operator->() const
+        {
+            return &_vec[_index];
+        }
 
         /**
          * @brief Increments the iterator so that it points to the next element in the vector.
@@ -155,7 +163,10 @@ private:
          * @param distance the distance between this iterator to the result.
          * @return the result of the subtraction.
          */
-        difference_type operator-(const VLVectorIterator &other) const{return _index - other._index;}
+        difference_type operator-(const VLVectorIterator &other) const
+        {
+            return _index - other._index;
+        }
 
         /**
          * @brief Moves this iterator to point at the value that is stored in a given
@@ -165,7 +176,7 @@ private:
          */
         VLVectorIterator &operator+=(const difference_type distance)
         {
-            if (std::size_t (_index + distance) <= _size)
+            if (std::size_t(_index + distance) <= _size)
             {
                 _index += distance;
             }
@@ -246,7 +257,10 @@ private:
          * @return true iff this iterator points to a value that is stored before the value
          * that the given iterator points to.
          */
-        bool operator<(const VLVectorIterator &other) const {return _index < other._index;}
+        bool operator<(const VLVectorIterator &other) const
+        {
+            return _index < other._index;
+        }
 
         /**
          * @brief Checks if this iterator points to a value that is stored after the value
@@ -255,7 +269,10 @@ private:
          * @return true iff this iterator points to a value that is stored after the value
          * that the given iterator points to.
          */
-        bool operator>(const VLVectorIterator &other) const {return _index > other._index;}
+        bool operator>(const VLVectorIterator &other) const
+        {
+            return _index > other._index;
+        }
 
         /**
          * @brief Checks if this iterator points to a value that is stored before the value
@@ -264,7 +281,10 @@ private:
          * @return true iff this iterator points to a value that is stored before the value
          * that the given iterator points to or if they point to the same value.
          */
-        bool operator<=(const VLVectorIterator &other) const {return !operator>(other);}
+        bool operator<=(const VLVectorIterator &other) const
+        {
+            return !operator>(other);
+        }
 
         /**
          * @brief Checks if this iterator points to a value that is stored after the value
@@ -273,7 +293,10 @@ private:
          * @return true iff this iterator points to a value that is stored after the value
          * that the given iterator points to or if they point to the same value.
          */
-        bool operator>=(const VLVectorIterator &other) const {return !operator<(other);}
+        bool operator>=(const VLVectorIterator &other) const
+        {
+            return !operator<(other);
+        }
     };
 
     /**
@@ -283,10 +306,10 @@ private:
     void copyToHeap()
     {
         _stackMode = false;
-        _heapVec = std::shared_ptr<T>(new T[_capacity], [&](T *p){delete [] p;});
+        _heapVec = new T[_capacity];
         for (int i = 0; i < (int) StaticCapacity; ++i)
         {
-            _heapVec.get()[i] = _stackVec[i];
+            _heapVec[i] = _stackVec[i];
         }
     }
 
@@ -299,9 +322,10 @@ private:
         _stackMode = true;
         for (int i = 0; i < (int) _size; ++i)
         {
-            _stackVec[i] = _heapVec.get()[i];
+            _stackVec[i] = _heapVec[i];
         }
-        _heapVec.reset();
+        delete[] _heapVec;
+        _heapVec = nullptr;
     }
 
     /**
@@ -310,14 +334,16 @@ private:
      */
     void increaseHeap(size_t newCapacity)
     {
-        auto newHeap = std::shared_ptr<T>(new T[newCapacity], [&](T *p){delete [] p;});
+        T *newHeap = new T[newCapacity];
         for (int i = 0; i < (int) _size; ++i)
         {
-            newHeap.get()[i] = _heapVec.get()[i];
+            newHeap[i] = _heapVec[i];
         }
         _capacity = newCapacity;
-        _heapVec.swap(newHeap);
+        delete[] _heapVec;
+        _heapVec = newHeap;
     }
+
 public:
 
     /**
@@ -329,15 +355,77 @@ public:
     /**
      * @brief Default constructor. Initialises an empty VLVector.
      */
-    VLVector() : _stackMode(true), _size(0), _capacity(StaticCapacity), _heapVec(nullptr){}
+    VLVector() : _stackMode(true), _size(0), _capacity(StaticCapacity), _heapVec(nullptr)
+    {
+    }
 
-//    VLVector(const VLVector &other)
-//    {
-//        _stackMode = other._stackMode;
-//        _size = other._size;
-//        _capacity = other._capacity;
-//
-//    }
+    /**
+     * @brief Copy constructor.
+     * @param other the vector to copy from.
+     */
+    VLVector(const VLVector &other)
+            : _stackMode(other._stackMode), _size(other._size), _capacity(other._capacity),
+              _heapVec(nullptr)
+    {
+        if (_stackMode)
+        {
+            std::copy(other._stackVec, other._stackVec + StaticCapacity, _stackVec);
+        }
+        else
+        {
+            _heapVec = new T[_capacity];
+            std::copy(other._heapVec, other._heapVec + _size, _heapVec);
+        }
+    }
+
+    /**
+     * @brief Move constructor.
+     * @param other the vector to move from.
+     */
+    VLVector(VLVector &&other) noexcept
+            : _stackMode(other._stackMode), _size(other._size), _capacity(other._capacity)
+    {
+        std::copy(other._stackVec, other._stackVec + StaticCapacity, _stackVec);
+        _heapVec = other._heapVec;
+        other._heapVec = nullptr;
+        other._size = 0;
+        other._capacity = 0;
+    }
+
+    /**
+     * @brief Destructor.
+     */
+    ~VLVector()
+    {
+        delete[] _heapVec;
+    }
+
+    /**
+     * @brief Implements the "swap" part of the "Copy and Swap" idiom.
+     * @param first the vector to assign to.
+     * @param second the vector to assign from.
+     */
+    friend void swap(VLVector &first, VLVector &second) noexcept
+    {
+        using std::swap;
+        swap(first._stackMode, second._stackMode);
+        swap(first._size, second._size);
+        swap(first._capacity, second._capacity);
+        swap(first._stackVec, second._stackVec);
+        swap(first._heapVec, second._heapVec);
+    }
+
+    /**
+     * @brief Assignment operator, both regular and move since other is received by value,
+     * thus received via copy constructor for l-values and via move constructor for r-values.
+     * @param other the other vector to assign from.
+     * @return this vector after assignment.
+     */
+    VLVector &operator=(VLVector other)
+    {
+        swap(*this, other);
+        return *this;
+    }
 
     /**
      * @brief Constructs a VLVector object.
@@ -348,7 +436,7 @@ public:
      */
     template<class InputIterator>
     VLVector(InputIterator first, InputIterator last)
-    : _stackMode(true), _size(0), _capacity(StaticCapacity)
+            : _stackMode(true), _size(0), _capacity(StaticCapacity)
     {
         for (auto it = first; it != last; ++it)
         {
@@ -360,7 +448,10 @@ public:
      * @brief Returns the number of elements that are stored in the vector.
      * @return the number of elements that are stored in the vector.
      */
-    std::size_t size() const {return _size;}
+    std::size_t size() const
+    {
+        return _size;
+    }
 
     /**
      * @brief Returns the capacity of the vector according to the formula given in the exam.
@@ -372,14 +463,17 @@ public:
         {
             return StaticCapacity;
         }
-        return (size_t)(3 * (_size + 1) / 2);
+        return (size_t) (3 * (_size + 1) / 2);
     }
 
     /**
      * @brief Checks if the vector is empty.
      * @return true iff the vector is empty.
      */
-    bool empty() const {return _size == 0;}
+    bool empty() const
+    {
+        return _size == 0;
+    }
 
     /**
      * @brief Gets an index and returns a reference to the value associated to it.
@@ -389,7 +483,7 @@ public:
      */
     T &at(const int index)
     {
-        if (index >= 0 && index < (int)_size)
+        if (index >= 0 && index < (int) _size)
         {
             return data()[index];
         }
@@ -404,7 +498,7 @@ public:
      */
     T at(const int index) const
     {
-        if (index >= 0 && index < (int)_size)
+        if (index >= 0 && index < (int) _size)
         {
             return data()[index];
         }
@@ -593,7 +687,8 @@ public:
         // If we need to remove elements from the heap:
         if (!_stackMode)
         {
-            _heapVec.reset();
+            delete[] _heapVec;
+            _heapVec = nullptr;
             _capacity = StaticCapacity;
             _stackMode = true;
         }
@@ -612,7 +707,7 @@ public:
         {
             return _stackVec;
         }
-        return _heapVec.get();
+        return _heapVec;
     }
 
     /**
@@ -625,7 +720,7 @@ public:
         {
             return _stackVec;
         }
-        return _heapVec.get();
+        return _heapVec;
     }
 
     /**
@@ -681,43 +776,64 @@ public:
      * @param other the other VLVector object.
      * @return true iff the objects differ from each other.
      */
-    bool operator!=(const VLVector &other) const {return !operator==(other);}
+    bool operator!=(const VLVector &other) const
+    {
+        return !operator==(other);
+    }
 
     /**
      * @brief Returns an iterator to the beginning of the vector.
      * @return an iterator to the beginning of the vector.
      */
-    iterator begin() {return iterator(0, _size, data());}
+    iterator begin()
+    {
+        return iterator(0, _size, data());
+    }
 
     /**
      * @brief Returns an iterator to the end of the vector.
      * @return an iterator to the end of the vector.
      */
-    iterator end() {return iterator(_size, _size, data());}
+    iterator end()
+    {
+        return iterator(_size, _size, data());
+    }
 
     /**
      * @brief Returns a const iterator to the beginning of the vector.
      * @return an iterator to the beginning of the vector.
      */
-    const_iterator begin() const {return const_iterator(0, _size, data());}
+    const_iterator begin() const
+    {
+        return const_iterator(0, _size, data());
+    }
 
     /**
      * @brief Returns a const iterator to the end of the vector.
      * @return an iterator to the end of the vector.
      */
-    const_iterator end() const {return const_iterator(_size, _size, data());}
+    const_iterator end() const
+    {
+        return const_iterator(_size, _size, data());
+    }
 
     /**
      * @brief Returns a const iterator to the beginning of the vector.
      * @return an iterator to the beginning of the vector.
      */
-    const_iterator cbegin() const {return const_iterator(0, _size, data());}
+    const_iterator cbegin() const
+    {
+        return const_iterator(0, _size, data());
+    }
 
     /**
      * @brief Returns a const iterator to the end of the vector.
      * @return an iterator to the end of the vector.
      */
-    const_iterator cend() const {return const_iterator(_size, _size, data());}
+    const_iterator cend() const
+    {
+        return const_iterator(_size, _size, data());
+    }
 };
 
 
