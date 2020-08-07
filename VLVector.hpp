@@ -21,11 +21,18 @@ template<typename T, size_t StaticCapacity = DEF_STATIC_CAPACITY>
 class VLVector
 {
 private:
+    /********************************************************************
+    *                             Class members                         *
+    ********************************************************************/
     bool _stackMode;
     std::size_t _size;
     std::size_t _capacity;
     T _stackVec[StaticCapacity];
     T *_heapVec;
+
+    /********************************************************************
+     *                             Iterator                             *
+     ********************************************************************/
 
     /**
      * @brief An iterator for the vector.
@@ -52,9 +59,9 @@ private:
         /**
          * @brief Constructor for iterator objects.
          * Initialises the iterator to point at the first element in the vector.
-         * @param index
-         * @param size
-         * @param vec
+         * @param index the index this iterator points at.
+         * @param size the size of the vector this iterator will iterate over
+         * @param vec the vector this iterator will iterate over
          */
         VLVectorIterator(unsigned int index, size_t size, Val *vec)
                 : _index(index), _size(size), _vec(vec)
@@ -299,6 +306,10 @@ private:
         }
     };
 
+    /********************************************************************
+    *                  Capacity increase-decrease methods               *
+    ********************************************************************/
+
     /**
      * @brief Copies the elements of the vector from the stack to the heap.
      * Sets the flag stackMode to false.
@@ -352,12 +363,9 @@ public:
     typedef VLVectorIterator<T> iterator;
     typedef VLVectorIterator<const T> const_iterator;
 
-    /**
-     * @brief Default constructor. Initialises an empty VLVector.
-     */
-    VLVector() : _stackMode(true), _size(0), _capacity(StaticCapacity), _heapVec(nullptr)
-    {
-    }
+    /********************************************************************
+    *                       Rule of 5 methods                           *
+    ********************************************************************/
 
     /**
      * @brief Copy constructor.
@@ -416,7 +424,8 @@ public:
     }
 
     /**
-     * @brief Assignment operator, both regular and move since other is received by value,
+     * @brief Assignment operator, implementing the "Copy and Swap" idiom.
+     * Implements both regular and move assignment operator since other is received by value,
      * thus received via copy constructor for l-values and via move constructor for r-values.
      * @param other the other vector to assign from.
      * @return this vector after assignment.
@@ -425,6 +434,17 @@ public:
     {
         swap(*this, other);
         return *this;
+    }
+
+    /********************************************************************
+    *                       Given API methods                           *
+    ********************************************************************/
+
+    /**
+     * @brief Default constructor. Initialises an empty VLVector.
+     */
+    VLVector() : _stackMode(true), _size(0), _capacity(StaticCapacity), _heapVec(nullptr)
+    {
     }
 
     /**
@@ -780,6 +800,10 @@ public:
     {
         return !operator==(other);
     }
+
+    /********************************************************************
+    *                       Begin and end iterators                     *
+    ********************************************************************/
 
     /**
      * @brief Returns an iterator to the beginning of the vector.
