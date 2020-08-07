@@ -436,7 +436,7 @@ public:
      */
     template<class InputIterator>
     VLVector(InputIterator first, InputIterator last)
-            : _stackMode(true), _size(0), _capacity(StaticCapacity)
+            : _stackMode(true), _size(0), _capacity(StaticCapacity), _heapVec(nullptr)
     {
         for (auto it = first; it != last; ++it)
         {
